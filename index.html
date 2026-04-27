@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifica Progetto</title>
+    <style>
+        body { margin: 0; background: #1a2533; color: white; font-family: sans-serif; text-align: center; }
+        .box { padding: 20px; border: 2px solid #f2c111; margin: 20px; border-radius: 10px; background: #2c3e50; }
+        button { background: #f2c111; border: none; padding: 15px; width: 100%; font-weight: bold; border-radius: 5px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h2>Test SmartAgent</h2>
+    <p>Se vedi questo e senti l'audio, il sistema è pronto.</p>
+    
+    <div class="box">
+        <h3>Palazzo Civico</h3>
+        <button onclick="testAudio()">ASCOLTA DEMO VOCALE</button>
+    </div>
+
+    <script>
+        function testAudio() {
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance("Inaugurato nel 1907, il Palazzo Civico di Cagliari è un capolavoro in pietra forte che fonde elementi liberty e gotico-aragonesi.");
+            msg.lang = 'it-IT';
+            window.speechSynthesis.speak(msg);
+        }
+    </script>
+</body>
+</html>
