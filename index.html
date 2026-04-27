@@ -2,30 +2,91 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verifica Progetto</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SmartAgent Cagliari</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; background: #1a2533; color: white; font-family: sans-serif; text-align: center; }
-        .box { padding: 20px; border: 2px solid #f2c111; margin: 20px; border-radius: 10px; background: #2c3e50; }
-        button { background: #f2c111; border: none; padding: 15px; width: 100%; font-weight: bold; border-radius: 5px; margin-top: 10px; }
+        body { margin: 0; padding: 0; background: #1a2533; font-family: sans-serif; overflow: hidden; height: 100vh; }
+        #map { height: 65vh; width: 100vw; background: #1a2533; }
+        
+        #ui-panel {
+            height: 35vh; background: #2c3e50; border-top: 4px solid #f2c111;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 15px; box-sizing: border-box;
+        }
+
+        .msg-title { color: #f2c111; font-weight: bold; font-size: 1.1em; text-transform: uppercase; margin-bottom: 5px; }
+        .msg-text { color: white; margin-bottom: 15px; font-size: 0.9em; min-height: 2.5em; padding: 0 10px; }
+        
+        .action-btn { 
+            background: #f2c111; color: #1a2533; border: none; padding: 15px; 
+            font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase; width: 90%;
+            font-size: 1em;
+        }
     </style>
 </head>
 <body>
-    <h2>Test SmartAgent</h2>
-    <p>Se vedi questo e senti l'audio, il sistema è pronto.</p>
-    
-    <div class="box">
-        <h3>Palazzo Civico</h3>
-        <button onclick="testAudio()">ASCOLTA DEMO VOCALE</button>
+
+    <div id="map"></div>
+
+    <div id="ui-panel">
+        <div id="msg-title">City SmartAgent</div>
+        <div id="msg-text">Tocca un segnaposto sulla mappa per attivare la guida vocale.</div>
+        <button id="btn-audio" class="action-btn" style="display:none;" onclick="parla()">Ascolta Descrizione</button>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        function testAudio() {
+        // Usiamo una mappa stradale che GitHub caricherà sicuramente
+        var map = L.map('map', { zoomControl: false }).setView([39.2160, 9.1115], 16);
+        
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
+
+        const info = {
+            civico: {
+                nome: "Palazzo Civico",
+                coords: [39.2154, 9.1105],
+                testo: "Inaugurato nel 1907, il Palazzo Civico di Cagliari è un capolavoro in pietra forte che fonde elementi liberty e gotico-aragonesi."
+            },
+            rinascente: {
+                nome: "Palazzo della Rinascente",
+                coords: [39.2157, 9.1118],
+                testo: "Il Palazzo della Rinascente è un edificio storico risalente ai primi del Novecento, simbolo dell'architettura commerciale su via Roma."
+            },
+            anna: {
+                nome: "Chiesa di Sant'Anna",
+                coords: [39.2185, 9.1112],
+                testo: "La Chiesa di Sant'Anna è un maestoso esempio di architettura barocca nel cuore dello storico quartiere Stampace."
+            }
+        };
+
+        let attivo = null;
+
+        // Aggiungiamo i segnaposti
+        Object.keys(info).forEach(key => {
+            const poi = info[key];
+            const marker = L.marker(poi.coords).addTo(map);
+            marker.on('click', () => {
+                attivo = poi;
+                document.getElementById('msg-title').innerText = poi.nome;
+                document.getElementById('msg-text').innerText = "Vuoi ascoltare le informazioni storiche?";
+                document.getElementById('btn-audio').style.display = "block";
+                map.flyTo(poi.coords, 18);
+            });
+        });
+
+        function parla() {
+            if (!attivo) return;
             window.speechSynthesis.cancel();
-            const msg = new SpeechSynthesisUtterance("Inaugurato nel 1907, il Palazzo Civico di Cagliari è un capolavoro in pietra forte che fonde elementi liberty e gotico-aragonesi.");
+            const msg = new SpeechSynthesisUtterance(attivo.testo);
             msg.lang = 'it-IT';
             window.speechSynthesis.speak(msg);
         }
+
+        // Sblocco audio obbligatorio per Android/iPhone
+        document.body.addEventListener('touchstart', function() {
+            window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+        }, { once: true });
     </script>
 </body>
 </html>
