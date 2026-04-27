@@ -3,89 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SmartAgent Cagliari</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <title>SmartAgent Cagliari - Live Demo</title>
     <style>
-        body { margin: 0; padding: 0; background: #1a2533; font-family: sans-serif; overflow: hidden; height: 100vh; }
-        #map { height: 65vh; width: 100vw; background: #1a2533; }
+        body { margin: 0; padding: 0; background: #1a2533; font-family: sans-serif; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
         
-        #ui-panel {
-            height: 35vh; background: #2c3e50; border-top: 4px solid #f2c111;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            text-align: center; padding: 15px; box-sizing: border-box;
+        /* Contenitore Mappa Alta Risoluzione */
+        #map-area {
+            flex: 1; position: relative; background-color: #1a2533;
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/6/61/Cagliari_City_Map.png'); /* Mappa di backup certificata */
+            background-size: cover; background-position: center;
         }
 
-        .msg-title { color: #f2c111; font-weight: bold; font-size: 1.1em; text-transform: uppercase; margin-bottom: 5px; }
-        .msg-text { color: white; margin-bottom: 15px; font-size: 0.9em; min-height: 2.5em; padding: 0 10px; }
+        /* I segnaposti gialli posizionati esattamente */
+        .pin {
+            position: absolute; width: 40px; height: 55px;
+            background: #f2c111; border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg); cursor: pointer; border: 2px solid #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5); z-index: 10;
+        }
+        .pin::after {
+            content: ''; width: 14px; height: 14px; background: #1a2533;
+            position: absolute; border-radius: 50%; top: 13px; left: 13px;
+        }
+
+        /* Pannello SmartAgent (Parte Bassa) */
+        #ui-panel {
+            height: 35%; background: #2c3e50; border-top: 4px solid #f2c111;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 20px; box-sizing: border-box;
+        }
+
+        .msg-title { color: #f2c111; font-weight: bold; font-size: 1.1em; text-transform: uppercase; margin-bottom: 8px; }
+        .msg-text { color: white; margin-bottom: 20px; font-size: 0.95em; min-height: 2.5em; }
         
         .action-btn { 
-            background: #f2c111; color: #1a2533; border: none; padding: 15px; 
-            font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase; width: 90%;
-            font-size: 1em;
+            background: #f2c111; color: #1a2533; border: none; padding: 16px 0; 
+            font-weight: bold; border-radius: 12px; cursor: pointer; text-transform: uppercase; width: 90%;
+            font-size: 1em; box-shadow: 0 4px 0 #b7920d;
         }
+        .action-btn:active { transform: translateY(2px); box-shadow: none; }
     </style>
 </head>
 <body>
 
-    <div id="map"></div>
+    <div id="map-area">
+        <div class="pin" style="top: 65%; left: 35%;" onclick="seleziona('civico')"></div>
+        <div class="pin" style="top: 62%; left: 60%;" onclick="seleziona('rinascente')"></div>
+        <div class="pin" style="top: 25%; left: 52%;" onclick="seleziona('anna')"></div>
+    </div>
 
     <div id="ui-panel">
         <div id="msg-title">City SmartAgent</div>
-        <div id="msg-text">Tocca un segnaposto sulla mappa per attivare la guida vocale.</div>
-        <button id="btn-audio" class="action-btn" style="display:none;" onclick="parla()">Ascolta Descrizione</button>
+        <div id="msg-text">Tocca un segnaposto sulla mappa per ascoltare la storia del monumento.</div>
+        <button id="btn-audio" class="action-btn" style="display:none;" onclick="riproduciAudio()">Ascolta Descrizione Vocale</button>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Usiamo una mappa stradale che GitHub caricherà sicuramente
-        var map = L.map('map', { zoomControl: false }).setView([39.2160, 9.1115], 16);
-        
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
-
-        const info = {
+        const database = {
             civico: {
                 nome: "Palazzo Civico",
-                coords: [39.2154, 9.1105],
-                testo: "Inaugurato nel 1907, il Palazzo Civico di Cagliari è un capolavoro in pietra forte che fonde elementi liberty e gotico-aragonesi."
+                audio: "Inaugurato nel 1907, il Palazzo Civico di Cagliari è un capolavoro in pietra forte che fonde elementi liberty e gotico-aragonesi. Si distingue per le sue maestose torrette ottagonali."
             },
             rinascente: {
                 nome: "Palazzo della Rinascente",
-                coords: [39.2157, 9.1118],
-                testo: "Il Palazzo della Rinascente è un edificio storico risalente ai primi del Novecento, simbolo dell'architettura commerciale su via Roma."
+                audio: "Il Palazzo della Rinascente, situato in via Roma, è un edificio storico dei primi del Novecento, simbolo dell'eleganza commerciale fronte porto della città."
             },
             anna: {
                 nome: "Chiesa di Sant'Anna",
-                coords: [39.2185, 9.1112],
-                testo: "La Chiesa di Sant'Anna è un maestoso esempio di architettura barocca nel cuore dello storico quartiere Stampace."
+                audio: "La Chiesa di Sant'Anna è un imponente esempio di architettura barocca situata nel quartiere storico di Stampace, cuore religioso della vecchia Cagliari."
             }
         };
 
-        let attivo = null;
+        let target = null;
 
-        // Aggiungiamo i segnaposti
-        Object.keys(info).forEach(key => {
-            const poi = info[key];
-            const marker = L.marker(poi.coords).addTo(map);
-            marker.on('click', () => {
-                attivo = poi;
-                document.getElementById('msg-title').innerText = poi.nome;
-                document.getElementById('msg-text').innerText = "Vuoi ascoltare le informazioni storiche?";
-                document.getElementById('btn-audio').style.display = "block";
-                map.flyTo(poi.coords, 18);
-            });
-        });
-
-        function parla() {
-            if (!attivo) return;
+        function seleziona(id) {
+            target = database[id];
+            document.getElementById('msg-title').innerText = "ARRIVO: " + target.nome;
+            document.getElementById('msg-text').innerText = "Sei arrivato. Vuoi ascoltare la guida vocale?";
+            document.getElementById('btn-audio').style.display = "block";
+            
+            // Sblocca il sistema audio per iOS/Android
             window.speechSynthesis.cancel();
-            const msg = new SpeechSynthesisUtterance(attivo.testo);
+            const sblocco = new SpeechSynthesisUtterance("");
+            window.speechSynthesis.speak(sblocco);
+        }
+
+        function riproduciAudio() {
+            if (!target) return;
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(target.audio);
             msg.lang = 'it-IT';
+            msg.rate = 0.9; // Voce leggermente più istituzionale
+            
+            document.getElementById('msg-text').innerText = "Riproduzione audio in corso...";
             window.speechSynthesis.speak(msg);
         }
 
-        // Sblocco audio obbligatorio per Android/iPhone
+        // Evento fondamentale per sbloccare l'audio su smartphone
         document.body.addEventListener('touchstart', function() {
-            window.speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+            const silent = new SpeechSynthesisUtterance("");
+            window.speechSynthesis.speak(silent);
         }, { once: true });
     </script>
 </body>
